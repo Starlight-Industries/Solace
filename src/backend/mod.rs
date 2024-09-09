@@ -1,11 +1,16 @@
+use std::{env, fs};
 
 use colored::Colorize;
-use dioxus::html::tr;
 use serde::Serialize;
-use std::{env::{self, consts::OS}, fs, os, path::PathBuf};
-mod init;
+mod installer;
 #[derive(serde::Serialize)]
-enum Loader {
+struct Loader {
+    typ: LoaderType,
+    version: String,
+    // common data here
+}
+#[derive(serde::Serialize)]
+enum LoaderType {
     Vanilla,
     Forge,
     Fabric,
@@ -38,7 +43,10 @@ impl Server {
             name: name.to_string(),
             port,
             server_dir: "".to_owned(),
-            server_loader: Loader::Vanilla,
+            server_loader: Loader {
+                typ: LoaderType::Fabric,
+                version: "1.21".to_string()
+            },
             is_running: false,
             initalized: false,
         };
@@ -56,9 +64,10 @@ impl Server {
 
     pub fn init(&mut self)  {
         let current_path = env::current_dir();
-        let dir: &str = &format!("./.solace/servers/{}",& mut self.name.red());
+        let dir: &str = &format!("./.solace/servers/{}",& mut self.name);
         let _ = fs::create_dir_all(dir);
         println!("Initalizing {} at {}.",self.name,dir);
+        installer::download_server(&self.server_loader, ".".to_owned());
         self.initalized = true;
     }
 }
