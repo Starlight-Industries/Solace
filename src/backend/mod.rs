@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{env, error::Error, fs, process::{Command, Stdio}};
 
 use colored::Colorize;
 use serde::Serialize;
@@ -45,29 +45,43 @@ impl Server {
             server_dir: "".to_owned(),
             server_loader: Loader {
                 typ: LoaderType::Fabric,
-                version: "1.21".to_string()
+                version: "1.21.1".to_string()
             },
             is_running: false,
             initalized: false,
         };
     }
-    pub fn start_server(&mut self) {
+    pub fn start_server(&mut self) -> Result<(), Box<dyn Error>> {
         if !self.is_running && self.initalized {
-            println!("starting {} on {}", self.name.blue(),self.port.to_string().green())
+            println!("starting {} on {}", self.name.blue(),self.port.to_string().green());
+            
+            let file_path = format!("./server.jar");
+            let status = Command::new("java")
+            .arg("-jar")
+            .arg(file_path)
+            .current_dir(self.server_dir.clone())
+            .stdin(Stdio::null())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()?;
+            Ok(())
         } else if !self.is_running && !self.initalized {
             println!("Server not initalized. Finishing process");
             self.init();
+            Ok(())
         } else {
-            println!("{} server: {} already started","Err:".red(),self.name)
+            println!("{} server: {} already started","Err:".red(),self.name);
+            Ok(())
         }
     }
 
     pub fn init(&mut self)  {
-        let current_path = env::current_dir();
+        //let current_path = env::current_dir();
         let dir: &str = &format!("./.solace/servers/{}",& mut self.name);
+        self.server_dir = dir.to_string();
         let _ = fs::create_dir_all(dir);
         println!("Initalizing {} at {}.",self.name,dir);
-        installer::download_server(&self.server_loader, ".".to_owned());
+        installer::download_server(&self.server_loader, format!("{}",dir).to_owned());
         self.initalized = true;
     }
 }
