@@ -59,6 +59,7 @@ impl Server {
             let status = Command::new("java")
             .arg("-jar")
             .arg(file_path)
+            .arg("-nogui")
             .current_dir(self.server_dir.clone())
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
@@ -81,7 +82,18 @@ impl Server {
         self.server_dir = dir.to_string();
         let _ = fs::create_dir_all(dir);
         println!("Initalizing {} at {}.",self.name,dir);
-        installer::download_server(&self.server_loader, format!("{}",dir).to_owned());
         self.initalized = true;
+        let toml_config = toml::to_string(&self).unwrap();
+        fs::write(format!("./.solace/servers/{}/server_config.toml",self.name), toml_config);
+        fs::write(format!("./.solace/servers/{}/eula.txt",self.name), "eula=true");
+        
+        installer::download_server(&self.server_loader, format!("{}",dir).to_owned());
+    }
+    pub fn is_initalized(&mut self) -> bool {
+        if self.initalized {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
