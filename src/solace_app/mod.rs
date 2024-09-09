@@ -1,4 +1,5 @@
 use freya::prelude::*;
+
 pub fn _app() -> Element {
     let mut times = use_signal(|| 1);
 

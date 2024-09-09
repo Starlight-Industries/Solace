@@ -1,2 +1,2 @@
-pub mod solace_backend;
+pub mod backend;
 pub mod solace_app;

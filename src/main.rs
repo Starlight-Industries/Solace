@@ -1,12 +1,10 @@
-#![cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
-)]
-
 use freya::prelude::*;
-use solace::solace_app;
-//use solace::solace_backend;
+pub mod solace_app;
+pub mod backend;
 
 fn main() {
-    launch(solace_app::_app);
+    let mut test_server = backend::Server::construct("Godot cafe", 25565);
+    test_server.init();
+    test_server.start_server();
+    //launch(solace_app::_app);
 }
