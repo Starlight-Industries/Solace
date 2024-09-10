@@ -1,5 +1,5 @@
 [package]
-name = "solace"
+name = "Solace"
 version = "0.1.0"
 edition = "2021"
 
@@ -14,3 +14,4 @@ versions = {version = "6.3.2",features = ["serde"]}
 reqwest = {version = "0.12.7",features = ["blocking"]}
 ctrlc = "3.4.5"
 minecraft-client-rs = "0.1.3"
+clap = {version = "4.5.17",features = ["derive"]}

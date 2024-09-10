@@ -3,13 +3,13 @@ use std::{error::Error, fs, process::{Command, Stdio}, sync::{atomic::{AtomicBoo
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 mod installer;
-#[derive(Serialize,Deserialize,Debug)]
+#[derive(Serialize,Deserialize,Debug,Clone)]
 struct Loader {
     typ: LoaderType,
     version: String,
     // common data here
 }
-#[derive(Serialize,Deserialize,Debug)]
+#[derive(Serialize,Deserialize,Debug,Clone)]
 enum LoaderType {
     Vanilla,
     Forge,
@@ -26,7 +26,7 @@ enum LoaderType {
     Mohist // Nobody is gonna use mohist either
 }
 
-#[derive(Serialize,Deserialize,Debug)]
+#[derive(Serialize,Deserialize,Debug,Clone)]
 pub(crate) struct Server {
     name: String,
     port: u16,
