@@ -77,15 +77,33 @@ impl Server {
             fs::write(format!("{}", config_file.clone()),new_content).expect("failed to mark server as online");
             let _ = self.handle_termination();
             
-            let status = Command::new("java")
-            .arg("-jar")
-            .arg(file_path)
-            //.arg("-nogui")
-            .current_dir(self.server_dir.clone())
-            .stdin(Stdio::null())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .status().expect("Failed to launch server");
+                    let mut child = Command::new("java")
+                        .arg("-jar")
+                        .arg(file_path)
+                        .current_dir(self.server_dir.clone())
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::inherit())
+                        .stderr(Stdio::inherit())
+                        .spawn()
+                        .expect("Failed to launch server");
+
+                    loop {
+                        match child.try_wait() {
+                            Ok(Some(status)) => {
+                                println!("Server process exited with status: {}", status);
+                                self.exit();
+                                break;
+                            }
+                            Ok(None) => {
+                                //TODO: Make a less lazy implementation of checking if the server is still running
+                                std::thread::sleep(std::time::Duration::from_secs(30));
+                            }
+                            Err(e) => {
+                                println!("Error waiting for server process: {}", e);
+                                break;
+                            }
+                        }
+                    }
 
             Ok(())
         } else if !self.is_running && !self.initalized {
@@ -96,8 +114,8 @@ impl Server {
             println!("{} server: {} already started","Err:".red(),self.name);
             Ok(())
         }
-    }
 
+    }
     pub fn init(&mut self)  {
         //let current_path = env::current_dir();
         let dir: &str = &format!("./.solace/servers/{}",& mut self.name);
@@ -163,5 +181,15 @@ impl Server {
             println!("Not initalized");
             return false;
         }
+    }
+    pub fn exit(&mut self) {
+        let config_file = format!("{}/server_config.toml", self.server_dir);
+        let content = fs::read_to_string(config_file.clone()).expect("failed to read toml");
+        let mut config: Server = toml::from_str(&content).expect("could not read config when starting the server");
+        config.is_running = false;
+        let new_content = toml::to_string(&config).expect("could not generate new content");
+        println!("{:?}",config);
+        fs::write(format!("{}", config_file.clone()),new_content).expect("failed to mark server as online");
+        
     }
 }

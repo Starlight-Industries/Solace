@@ -13,3 +13,4 @@ toml = "0.8.19"
 versions = {version = "6.3.2",features = ["serde"]}
 reqwest = {version = "0.12.7",features = ["blocking"]}
 ctrlc = "3.4.5"
+minecraft-client-rs = "0.1.3"
