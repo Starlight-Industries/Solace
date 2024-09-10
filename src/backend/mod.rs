@@ -53,7 +53,7 @@ impl Server {
         return Self {
             name: name.to_string(),
             port,
-            server_dir: "./.solace/servers".to_string(),
+            server_dir: format!("./.solace/servers/{}", name),
             server_loader: Loader {
                 typ: LoaderType::Fabric,
                 version: "1.21.1".to_string()
@@ -80,7 +80,7 @@ impl Server {
             let status = Command::new("java")
             .arg("-jar")
             .arg(file_path)
-            .arg("-nogui")
+            //.arg("-nogui")
             .current_dir(self.server_dir.clone())
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
@@ -151,7 +151,7 @@ impl Server {
                 data
             }
             Err(e) => {
-                eprintln!("Error reading config: {}",e);
+                eprintln!("Error reading config: {} This means the server is not initalized! ",e);
                 return false;
             }
         };
