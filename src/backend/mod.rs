@@ -1,4 +1,4 @@
-use std::{env, error::Error, fs, process::{Command, Stdio}, sync::{atomic::{AtomicBool, Ordering}, Arc}};
+use std::{error::Error, fs, process::{Command, Stdio}, sync::{atomic::{AtomicBool, Ordering}, Arc}};
 
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
@@ -38,11 +38,22 @@ pub(crate) struct Server {
 
 impl Server {
     pub fn construct(name: &str, port: u16) -> Self {
-        println!("Constructing server {} with port {}",name.blue(), port.to_string().green(),);
+        println!("Constructing server {} with port {}", name.blue(), port.to_string().green());
+        
+        let config_path = format!("./.solace/servers/{}/server_config.toml", name);
+        if let Ok(content) = fs::read_to_string(&config_path) {
+            if let Ok(server) = toml::from_str::<Server>(&content) {
+                if server.name == name {
+                    println!("Loading existing server configuration for {}", name.blue());
+                    return server;
+                }
+            }
+        }
+
         return Self {
             name: name.to_string(),
             port,
-            server_dir: "".to_owned(),
+            server_dir: "./.solace/servers".to_string(),
             server_loader: Loader {
                 typ: LoaderType::Fabric,
                 version: "1.21.1".to_string()
@@ -56,14 +67,15 @@ impl Server {
             println!("starting {} on {}", self.name.blue(),self.port.to_string().green());
             
             let file_path = format!("./server.jar");
-            let config_file = format!("{}/server_config.toml",self.server_dir);
-            let content = fs::read_to_string(config_file.clone())?;
-            let mut config: Server = toml::from_str(&content)?;
+            let config_file: String = format!("{}/server_config.toml",self.server_dir);
+            println!("{}",config_file);
+            let content: String = fs::read_to_string(config_file.clone()).expect("failed to read toml");
+            let mut config: Server = toml::from_str(&content).expect("could not read config when starting the server");
             config.is_running = true;
-            let new_content = toml::to_string(&config);
+            let new_content = toml::to_string(&config).expect("could not generate new content");
             println!("{:?}",config);
-            fs::write(format!("{}", config_file.clone()),new_content?);
-            self.handle_termination();
+            fs::write(format!("{}", config_file.clone()),new_content).expect("failed to mark server as online");
+            let _ = self.handle_termination();
             
             let status = Command::new("java")
             .arg("-jar")
@@ -73,7 +85,7 @@ impl Server {
             .stdin(Stdio::null())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
-            .status()?;
+            .status().expect("Failed to launch server");
 
             Ok(())
         } else if !self.is_running && !self.initalized {
@@ -97,7 +109,7 @@ impl Server {
         fs::write(format!("./.solace/servers/{}/server_config.toml",self.name), toml_config);
         fs::write(format!("./.solace/servers/{}/eula.txt",self.name), "eula=true");
         
-        installer::download_server(&self.server_loader, format!("{}",dir).to_owned());
+        installer::download_server(&self.server_loader, format!("{}",dir).to_string());
     }
     pub fn handle_termination(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let running = Arc::new(AtomicBool::new(true));
@@ -130,11 +142,26 @@ impl Server {
         Ok(())
     }
     pub fn is_initalized(&mut self) -> bool {
-        if self.initalized {
+        let config_file = format!("{}/{}/server_config.toml", self.server_dir,self.name);
+        println!("{}", config_file.red());
+        
+        let content = match fs::read_to_string(config_file.clone()) {
+            Ok(data) => {
+                println!("Succsessfully read file");
+                data
+            }
+            Err(e) => {
+                eprintln!("Error reading config: {}",e);
+                return false;
+            }
+        };
+        let config: Server = toml::from_str(&content).expect("failed to read config to check initaliziaon");
+        if content.contains("initalized = true") {
+            println!("Initalized true: {}", content.contains("initalized = true"));
             return true;
         } else {
+            println!("Not initalized");
             return false;
         }
     }
 }
-

@@ -1,7 +1,6 @@
 use super::Loader;
 use colored::{self, Colorize};
-use freya::events::file;
-use std::io::{self, copy, BufWriter, Cursor, Write};
+use std::io::{BufWriter, Write};
 use std::fs::File;
 
 pub fn download_server(loader: &Loader,dir: String ) -> Result<(), Box<dyn std::error::Error>> {
