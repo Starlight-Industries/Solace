@@ -142,7 +142,7 @@ impl Server {
         Ok(())
     }
     pub fn is_initalized(&mut self) -> bool {
-        let config_file = format!("{}/{}/server_config.toml", self.server_dir,self.name);
+        let config_file = format!("{}/server_config.toml", self.server_dir);
         println!("{}", config_file.red());
         
         let content = match fs::read_to_string(config_file.clone()) {
