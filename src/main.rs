@@ -3,7 +3,7 @@
 pub mod solace_app;
 pub mod backend;
 fn main() {
-    let mut test_server = backend::Server::construct("TestSMP", 25565);
+    let mut test_server = backend::Server::construct("TestServer", 25565);
     if test_server.is_initalized() != true {
         test_server.init()
     } else {
