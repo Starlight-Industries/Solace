@@ -15,7 +15,7 @@ pub fn download_server(loader: &Loader,dir: String ) -> Result<(), Box<dyn std::
     }
     let response = reqwest::blocking::get(&target)?;
     if response.status().is_success() {
-        let mut file = File::create(format!("{}/server.jar", dir))?;
+        let file = File::create(format!("{}/server.jar", dir))?;
 
         let content = response.bytes()?;
         if content.is_empty() {
@@ -28,8 +28,5 @@ pub fn download_server(loader: &Loader,dir: String ) -> Result<(), Box<dyn std::
     } else {
         eprintln!("Download failed with status: {}", response.status());
     }
-    //let mut out = File::create("./server.jar").expect("file creation failed");
-    //io::copy(&mut output.as_bytes(), &mut out).expect("Failed to write file");
-    //println!("{}", target.purple());
     Ok(())
 }

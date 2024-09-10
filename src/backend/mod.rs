@@ -1,15 +1,15 @@
-use std::{env, error::Error, fs, process::{Command, Stdio}};
+use std::{env, error::Error, fs, process::{Command, Stdio}, sync::{atomic::{AtomicBool, Ordering}, Arc}};
 
 use colored::Colorize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 mod installer;
-#[derive(serde::Serialize)]
+#[derive(Serialize,Deserialize,Debug)]
 struct Loader {
     typ: LoaderType,
     version: String,
     // common data here
 }
-#[derive(serde::Serialize)]
+#[derive(Serialize,Deserialize,Debug)]
 enum LoaderType {
     Vanilla,
     Forge,
@@ -26,7 +26,7 @@ enum LoaderType {
     Mohist // Nobody is gonna use mohist either
 }
 
-#[derive(Serialize)]
+#[derive(Serialize,Deserialize,Debug)]
 pub(crate) struct Server {
     name: String,
     port: u16,
@@ -56,6 +56,15 @@ impl Server {
             println!("starting {} on {}", self.name.blue(),self.port.to_string().green());
             
             let file_path = format!("./server.jar");
+            let config_file = format!("{}/server_config.toml",self.server_dir);
+            let content = fs::read_to_string(config_file.clone())?;
+            let mut config: Server = toml::from_str(&content)?;
+            config.is_running = true;
+            let new_content = toml::to_string(&config);
+            println!("{:?}",config);
+            fs::write(format!("{}", config_file.clone()),new_content?);
+            self.handle_termination();
+            
             let status = Command::new("java")
             .arg("-jar")
             .arg(file_path)
@@ -65,6 +74,7 @@ impl Server {
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .status()?;
+
             Ok(())
         } else if !self.is_running && !self.initalized {
             println!("Server not initalized. Finishing process");
@@ -89,6 +99,36 @@ impl Server {
         
         installer::download_server(&self.server_loader, format!("{}",dir).to_owned());
     }
+    pub fn handle_termination(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let running = Arc::new(AtomicBool::new(true));
+    
+        let running_clone = running.clone();
+        let config_file = format!("{}/server_config.toml", self.server_dir);
+        
+        let content = fs::read_to_string(config_file.clone())?;
+        let mut config: Server = toml::from_str(&content)?;
+        
+        config.is_running = false;
+
+        let new_content = toml::to_string(&config)?;
+    
+        println!("{:?}", config);
+        println!("{}", "Press Ctrl+C to exit.".red().bold().underline());
+    
+        let config_file_clone = config_file.clone();
+        let new_content_clone = new_content.clone(); // im doing this so i can use it in ctrlc
+    
+        ctrlc::set_handler(move || {
+            println!("Received Ctrl+C! Performing cleanup...");
+            if let Err(e) = fs::write(config_file_clone.clone(), new_content_clone.clone()) {
+                eprintln!("Failed to write config file: {}", e);
+            }
+    
+            running_clone.store(false, Ordering::SeqCst);
+        }).expect("Error setting Ctrl+C handler");
+    
+        Ok(())
+    }
     pub fn is_initalized(&mut self) -> bool {
         if self.initalized {
             return true;
@@ -97,3 +137,4 @@ impl Server {
         }
     }
 }
+
