@@ -5,8 +5,8 @@ edition = "2021"
 
 
 [dependencies]
-freya = "0.2"
-dioxus = { version = "0.5", features = ["macro", "hooks"], default-features = false }
+#freya = "0.2"
+#dioxus = { version = "0.5", features = ["macro", "hooks"], default-features = false }
 colored = "2.1.0"
 serde = "1.0.210"
 toml = "0.8.19"
