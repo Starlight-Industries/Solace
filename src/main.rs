@@ -1,14 +1,10 @@
-use std::fmt::format;
-
 use backend::Server;
-use serde::ser;
-use versions::Versioning;
 use clap::{Parser, Subcommand};
+use color_eyre::Result;
+use solace::LoaderType;
 
-
-pub mod solace_app;
+pub mod app;
 pub mod backend;
-const SERVER_DIR: &str = "./.solace/servers/";
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -16,45 +12,30 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 }
+
 #[derive(Subcommand)]
 enum Commands {
-    /// Runs the server with the name you specify
     Run {
-        /// Name of the server to run
         #[arg(short, long)]
-        server: String,
+        name: String,
     },
-    /// Creates a server and initalizes it
-    Create {
-    }
+    Create,
 }
-fn start_server(server: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let mut server = Server::construct(&server.to_lowercase(), 25565, None);
-    if !server.is_initalized() {
-        server.init();
-    }
-    server.start_server();
-    Ok(())
-}fn main() {
-    // let mut test_server = backend::Server::construct("TestServer", 25565);
-    // if test_server.is_initalized() != true {
-    //     test_server.init()
-    // } else {
-    //     std::process::exit(0)
-    // }
-    // println!("{}", toml);
-    // let _ = test_server.start_server();
 
-    //launch(solace_app::_app);
+fn start_server(server: &str) -> Result<()> {
+    let mut server = Server::construct(&server.to_lowercase(), 25565, LoaderType::None)?;
+    if !server.is_initalized() {
+        server.init()?;
+    }
+    server.start_server()
+}
+fn main() -> Result<()> {
+    color_eyre::install()?;
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Run {server }) => {
-            start_server(server).expect("failed to start server");
-        }
-        Some(Commands::Create {  }) => {
-            Server::create_server();
-        }
-        None => {}
+        Some(Commands::Run { name }) => start_server(name),
+        Some(Commands::Create) => Server::create_server(),
+        None => Ok(()),
     }
 }
