@@ -29,16 +29,13 @@ enum Commands {
     }
 }
 fn start_server(server: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let mut server = Server::construct(&server.to_lowercase(), 25565);
-    if server.is_initalized() != true {
-        server.init()
-    } else {
-        //std::process::exit(0)
+    let mut server = Server::construct(&server.to_lowercase(), 25565, None);
+    if !server.is_initalized() {
+        server.init();
     }
-    let _ = server.start_server();
+    server.start_server();
     Ok(())
-}
-fn main() {
+}fn main() {
     // let mut test_server = backend::Server::construct("TestServer", 25565);
     // if test_server.is_initalized() != true {
     //     test_server.init()

@@ -1,7 +1,7 @@
 use std::{error::Error, fs, process::{Command, Stdio}, sync::{atomic::{AtomicBool, Ordering}, Arc}};
 
 use colored::Colorize;
-use inquire::Text;
+use inquire::{MultiSelect, Text};
 use reqwest::dns::Name;
 use serde::{Deserialize, Serialize};
 mod installer;
@@ -12,7 +12,7 @@ struct Loader {
     // common data here
 }
 #[derive(Serialize,Deserialize,Debug,Clone)]
-enum LoaderType {
+pub enum LoaderType {
     Vanilla,
     Forge,
     Fabric,
@@ -37,9 +37,8 @@ pub(crate) struct Server {
     is_running: bool,
     initalized: bool,
 }
-
 impl Server {
-    pub fn construct(name: &str, port: u16) -> Self {
+    pub fn construct(name: &str, port: u16, loader: Option<LoaderType>) -> Self {
         println!("Constructing server {} with port {}", name.blue(), port.to_string().green());
         
         let config_path = format!("./.solace/servers/{}/server_config.toml", name);
@@ -51,13 +50,13 @@ impl Server {
                 }
             }
         }
-        // If the server configuration doesn't exist, create a new one with the default values
+          // If the server configuration doesn't exist, create a new one with the default values
         return Self {
             name: name.to_string(),
             port,
             server_dir: format!("./.solace/servers/{}", name),
             server_loader: Loader {
-                typ: LoaderType::Fabric,
+                typ: loader.unwrap_or(LoaderType::Fabric),
                 version: "1.21.1".to_string()
             },
             is_running: false,
@@ -65,40 +64,60 @@ impl Server {
         };
     }
     pub fn create_server() {
-        let name = Text::new("Server Name: ").prompt();
+        println!("Creating a new server...{}", "".green());
+        let name = Text::new("Server Name: ").prompt().expect("Failed to get server name");
+        let loader_selection = MultiSelect::new("Server loader", vec![
+            format!("{:?}", LoaderType::Vanilla),
+            format!("{:?}", LoaderType::Forge),
+            format!("{:?}", LoaderType::Fabric),
+            format!("{:?}", LoaderType::Quilt),
+            format!("{:?}", LoaderType::Paper),
+            format!("{:?}", LoaderType::Spigot),
+            format!("{:?}", LoaderType::Bukkit),
+            format!("{:?}", LoaderType::Purpur),
+            format!("{:?}", LoaderType::Sponge),
+            format!("{:?}", LoaderType::Bungee),
+            format!("{:?}", LoaderType::Velocity),
+            format!("{:?}", LoaderType::Folia),
+            format!("{:?}", LoaderType::Mohist),
+        ])
+        .with_default(&[0])
+        .prompt()
+        .expect("Failed to get loader selection");
+
         let port = Text::new("Port: ")
             .with_default("25565")
-            .prompt();
-        match &name {
-            Ok(Name) => println!("Name: {}", Name),
-            Err(e) => println!("Error: {}", e),
-        }
-        match &port {
-            Ok(Port) => println!("Port: {}", Port),
-            Err(e) => println!("Error: {}", e),
-        }
-        // check if server already exists
-        if let Ok(ref name) = name {
-            // this is really jank btw 
-            let config_path = format!("./.solace/servers/{}/server_config.toml", name);
-            if let Ok(content) = fs::read_to_string(&config_path) {
-                if let Ok(server) = toml::from_str::<Server>(&content) {
-                    if server.name == name.to_string() {
-                        println!("Server {} already exists", name.blue());
-                        return;
-                    }
-                }
-            }
-            
-        }
-        let mut new_server = Server::construct(&name.expect("Failed to get server name"), port.expect("Failed to get port").parse().expect("Failed to parse port"));
+            .prompt()
+            .expect("Failed to get port");
+
+        let port_number: u16 = port.parse().expect("Invalid port number");
+
+        let loader_type = match loader_selection.first() {
+            Some(loader_str) => match loader_str.as_str() {
+                "Vanilla" => LoaderType::Vanilla,
+                "Forge" => LoaderType::Forge,
+                "Fabric" => LoaderType::Fabric,
+                "Quilt" => LoaderType::Quilt,
+                "Paper" => LoaderType::Paper,
+                "Spigot" => LoaderType::Spigot,
+                "Bukkit" => LoaderType::Bukkit,
+                "Purpur" => LoaderType::Purpur,
+                "Sponge" => LoaderType::Sponge,
+                "Bungee" => LoaderType::Bungee,
+                "Velocity" => LoaderType::Velocity,
+                "Folia" => LoaderType::Folia,
+                "Mohist" => LoaderType::Mohist,
+                _ => LoaderType::Vanilla,
+            },
+            None => LoaderType::Vanilla,
+        };
+
+        let mut new_server = Server::construct(&name, port_number, Some(loader_type));
         new_server.init();
-        new_server.start_server();
-    }
-    pub fn start_server(&mut self) -> Result<(), Box<dyn Error>> {
+        new_server.start_server().unwrap();
+    }    pub fn start_server(&mut self) -> Result<(), Box<dyn Error>> {
         if !self.is_running && self.initalized {
-            println!("starting {} on {}", self.name.blue(),self.port.to_string().green());
-            
+            println!("starting {} on {}", self.name.blue(), self.port.to_string().green());            
             let file_path = format!("./server.jar");
             let config_file: String = format!("{}/server_config.toml",self.server_dir);
             println!("{}",config_file);
@@ -183,7 +202,7 @@ impl Server {
         let new_content_clone = new_content.clone(); // im doing this so i can use it in ctrlc
     
         ctrlc::set_handler(move || {
-            println!("Received Ctrl+C! Performing cleanup...");
+            println!("Received Ctrl+C! Performing cleanup...{}","".red().bold().underline());
             if let Err(e) = fs::write(config_file_clone.clone(), new_content_clone.clone()) {
                 eprintln!("Failed to write config file: {}", e);
             }
