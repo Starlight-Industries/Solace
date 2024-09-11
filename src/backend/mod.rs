@@ -1,6 +1,8 @@
 use std::{error::Error, fs, process::{Command, Stdio}, sync::{atomic::{AtomicBool, Ordering}, Arc}};
 
 use colored::Colorize;
+use inquire::Text;
+use reqwest::dns::Name;
 use serde::{Deserialize, Serialize};
 mod installer;
 #[derive(Serialize,Deserialize,Debug,Clone)]
@@ -49,7 +51,7 @@ impl Server {
                 }
             }
         }
-
+        // If the server configuration doesn't exist, create a new one with the default values
         return Self {
             name: name.to_string(),
             port,
@@ -61,6 +63,37 @@ impl Server {
             is_running: false,
             initalized: false,
         };
+    }
+    pub fn create_server() {
+        let name = Text::new("Server Name: ").prompt();
+        let port = Text::new("Port: ")
+            .with_default("25565")
+            .prompt();
+        match &name {
+            Ok(Name) => println!("Name: {}", Name),
+            Err(e) => println!("Error: {}", e),
+        }
+        match &port {
+            Ok(Port) => println!("Port: {}", Port),
+            Err(e) => println!("Error: {}", e),
+        }
+        // check if server already exists
+        if let Ok(ref name) = name {
+            // this is really jank btw 
+            let config_path = format!("./.solace/servers/{}/server_config.toml", name);
+            if let Ok(content) = fs::read_to_string(&config_path) {
+                if let Ok(server) = toml::from_str::<Server>(&content) {
+                    if server.name == name.to_string() {
+                        println!("Server {} already exists", name.blue());
+                        return;
+                    }
+                }
+            }
+            
+        }
+        let mut new_server = Server::construct(&name.expect("Failed to get server name"), port.expect("Failed to get port").parse().expect("Failed to parse port"));
+        new_server.init();
+        new_server.start_server();
     }
     pub fn start_server(&mut self) -> Result<(), Box<dyn Error>> {
         if !self.is_running && self.initalized {

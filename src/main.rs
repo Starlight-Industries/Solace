@@ -24,13 +24,16 @@ enum Commands {
         #[arg(short, long)]
         server: String,
     },
+    /// Creates a server and initalizes it
+    Create {
+    }
 }
 fn start_server(server: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut server = Server::construct(&server.to_lowercase(), 25565);
     if server.is_initalized() != true {
         server.init()
     } else {
-        std::process::exit(0)
+        //std::process::exit(0)
     }
     let _ = server.start_server();
     Ok(())
@@ -51,6 +54,9 @@ fn main() {
     match &cli.command {
         Some(Commands::Run {server }) => {
             start_server(server).expect("failed to start server");
+        }
+        Some(Commands::Create {  }) => {
+            Server::create_server();
         }
         None => {}
     }
