@@ -33,12 +33,24 @@ impl Server {
         );
 
         let config_path = format!("./.solace/servers/{}/server_config.toml", name);
-        let content = read_to_string(&config_path)?;
-        let server: Server = toml::from_str(&content)?;
-        if server.name == name {
-            println!("Loading existing configuration for {}", name.blue());
-            return Ok(server);
+        match  read_to_string(&config_path) {
+            Ok(content) => {
+                println!("Loading existing configuration for {}", name.blue());
+                let server: Server = toml::from_str(&content)?;
+                if server.name == name {
+                    return Ok(server);
+                }
+            }
+            Err(_) => {
+                println!("No existing configuration found for {}", name.blue());
+            }
         }
+        // let content = read_to_string(&config_path)?;
+        // let server: Server = toml::from_str(&content)?;
+        // if server.name == name {
+        //     println!("Loading existing configuration for {}", name.blue());
+        //     return Ok(server);
+        // }
         Ok(Self {
             name: name.to_string(),
             port,
