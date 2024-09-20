@@ -1,20 +1,25 @@
 [package]
-name = "solace"
-version = "0.1.0"
 edition = "2021"
-
+name = "solace"
+license = "MIT"
+authors = ["Starlight-software", "Caznix"]
+version = "0.1.0"
+repository = "https://github.com/Starlight-Industries/Solace"
 
 [dependencies]
-#freya = "0.2"
-#dioxus = { version = "0.5", features = ["macro", "hooks"], default-features = false }
 colored = "2.1.0"
 serde = "1.0.210"
 toml = "0.8.19"
-versions = {version = "6.3.2",features = ["serde"]}
-reqwest = {version = "0.12.7",features = ["blocking"]}
+versions = { version = "6.3.2", features = ["serde"] }
+reqwest = { version = "0.12.7", features = ["blocking", "json"] }
 ctrlc = "3.4.5"
 minecraft-client-rs = "0.1.3"
-clap = {version = "4.5.17",features = ["derive"]}
+clap = { version = "4.5.17", features = ["derive"] }
 inquire = "0.7.5"
 serde_json = "1.0.128"
 color-eyre = "0.6.3"
+egui = "0.28.1"
+eframe = "0.28.1"
+env_logger = "0.11.5"
+egui_extras = "0.28.1"
+spinoff = "0.8.0"

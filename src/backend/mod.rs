@@ -1,20 +1,25 @@
 use colored::Colorize;
+use metadata::get_working_dir;
 use serde::{Deserialize, Serialize};
 pub mod installer;
 use color_eyre::Result;
+use colored::control;
 use inquire::{Select, Text};
+use solace::{Loader, LoaderType};
+use spinoff::{spinners, Color, Spinner, Streams};
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::Once;
 use std::thread::sleep;
 use std::time::Duration;
 
-use solace::{Loader, LoaderType};
-
 use std::fs::{create_dir_all, read_to_string, write};
 use std::process::Command;
-
+pub mod metadata;
+static CTRL_C_HANDLER: Once = Once::new();
 #[derive(Serialize, Deserialize, Debug, Clone)]
+
 pub(crate) struct Server {
     name: String,
     port: u16,
@@ -23,17 +28,20 @@ pub(crate) struct Server {
     is_running: bool,
     initalized: bool,
 }
-
 impl Server {
-    pub fn construct(name: &str, port: u16, loader: LoaderType) -> Result<Self> {
+    pub fn construct(name: &str, port: u16, loader: LoaderType, version: &str) -> Result<Self> {
         println!(
             "Constructing server {} with port {}",
             name.blue(),
             port.to_string().green()
         );
 
-        let config_path = format!("./.solace/servers/{}/server_config.toml", name);
-        match  read_to_string(&config_path) {
+        let config_path = format!(
+            "{}/.solace/servers/{}/server_config.toml",
+            get_working_dir(),
+            name
+        );
+        match read_to_string(&config_path) {
             Ok(content) => {
                 println!("Loading existing configuration for {}", name.blue());
                 let server: Server = toml::from_str(&content)?;
@@ -45,16 +53,10 @@ impl Server {
                 println!("No existing configuration found for {}", name.blue());
             }
         }
-        // let content = read_to_string(&config_path)?;
-        // let server: Server = toml::from_str(&content)?;
-        // if server.name == name {
-        //     println!("Loading existing configuration for {}", name.blue());
-        //     return Ok(server);
-        // }
         Ok(Self {
             name: name.to_string(),
             port,
-            server_dir: format!("./.solace/servers/{}", name),
+            server_dir: format!("{}/.solace/servers/{}", get_working_dir(), name),
             server_loader: Loader {
                 typ: loader,
                 version: "1.21.1".to_string(),
@@ -90,11 +92,18 @@ impl Server {
         )
         .prompt()?;
 
+        let server_version = Text::new("Server version (ex: 1.21.1)").prompt();
+
         let port = Text::new("Port: ").with_default("25565").prompt()?;
 
         let port_number: u16 = port.parse()?;
 
-        let mut new_server = Server::construct(&name, port_number, loader_type)?;
+        let mut new_server = Server::construct(
+            &name,
+            port_number,
+            loader_type,
+            server_version.unwrap().as_str(),
+        )?;
 
         new_server.init()?;
         new_server.start_server()
@@ -158,18 +167,26 @@ impl Server {
     }
     pub fn init(&mut self) -> Result<()> {
         //let current_path = env::current_dir();
-        let dir = &format!("./.solace/servers/{}", &mut self.name);
+        let dir = &format!("{}/.solace/servers/{}", get_working_dir(), &mut self.name);
         self.server_dir = dir.to_string();
         create_dir_all(dir)?;
         println!("Initalizing {} at {}.", self.name, dir);
         self.initalized = true;
         let toml_config = toml::to_string(&self)?;
         write(
-            format!("./.solace/servers/{}/server_config.toml", self.name),
+            format!(
+                "{}/.solace/servers/{}/server_config.toml",
+                get_working_dir(),
+                self.name
+            ),
             toml_config,
         )?;
         write(
-            format!("./.solace/servers/{}/eula.txt", self.name),
+            format!(
+                "{}/.solace/servers/{}/eula.txt",
+                get_working_dir(),
+                self.name
+            ),
             "eula=true",
         )?;
 
@@ -193,16 +210,29 @@ impl Server {
 
         let config_file_clone = config_file.clone();
         let new_content_clone = new_content.clone(); // im doing this so i can use it in ctrlc
+        let mut terminating: bool = false;
 
-        ctrlc::set_handler(move || {
-            println!(
-                "Received Ctrl+C! Performing cleanup...{}",
-                "".red().bold().underline()
-            );
-            write(config_file_clone.clone(), new_content_clone.clone()).unwrap();
-
-            running_clone.store(false, Ordering::SeqCst);
-        })?;
+        CTRL_C_HANDLER.call_once(|| {
+            // Register the Ctrl+C handler
+            ctrlc::set_handler(move || {
+                if !terminating {
+                    terminating = true;
+                    control::set_virtual_terminal(true).unwrap();
+                    println!(
+                        "{}",
+                        "Received Ctrl+C! Performing cleanup..."
+                            .red()
+                            .bold()
+                            .underline()
+                    );
+                    let mut spinner = Spinner::new(spinners::Arc, " Terminating... ", Color::Red);
+                    write(config_file_clone.clone(), new_content_clone.clone()).unwrap();
+                    running_clone.store(false, Ordering::SeqCst);
+                }
+            })
+            .unwrap();
+            println!("Attempting to terminate");
+        });
 
         Ok(())
     }
@@ -243,3 +273,6 @@ impl Server {
         Ok(())
     }
 }
+// pub fn get_servers() {
+//     for folder in
+// }

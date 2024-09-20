@@ -1,25 +1,40 @@
-// use freya::prelude::*;
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+#![allow(rustdoc::missing_crate_level_docs)] // it's an example
 
-// pub fn _app() -> Element {
-//     let mut times = use_signal(|| 1);
+use eframe::{egui, glow::MAX_WIDTH};
 
-//     let exclamations = "!".repeat(times());
+pub fn main() -> eframe::Result {
+    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 720.0]),
+        ..Default::default()
+    };
+    eframe::run_native(
+        "Solace",
+        options,
+        Box::new(|cc| {
+            // This gives us image support:
+            egui_extras::install_image_loaders(&cc.egui_ctx);
 
-//     rsx!(
-//         rect {
-//             width: "100%",
-//             height: "100%",
-//             background: "rgb(57, 138, 215)",
-//             main_align: "center",
-//             cross_align: "center",
-//             onclick: move |_| times += 5,
-//             label {
-//                 width: "100%",
-//                 font_size: "50",
-//                 text_align: "center",
-//                 color: "white",
-//                 "Hello, World{exclamations}"
-//             }
-//         }
-//     )
-// }
+            Ok(Box::<MyApp>::default())
+        }),
+    )
+}
+
+struct MyApp {}
+
+impl Default for MyApp {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+impl eframe::App for MyApp {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            egui::SidePanel::left("Servers")
+                .exact_width(182.0)
+                .show(ctx, |ui| {})
+        });
+    }
+}
