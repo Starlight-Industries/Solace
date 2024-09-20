@@ -1,37 +1,13 @@
-use color_eyre::eyre::bail;
 use color_eyre::Result;
 use colored::{self, Colorize};
 use reqwest::blocking::get as download;
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
 use serde_json;
-use serde_json::from_str;
 use serde_json::Value;
 use solace::{Loader, LoaderType};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-
-#[derive(Deserialize, Serialize)]
-struct MinecraftVersionManifest {
-    latest: String,
-    versions: Vec<MinecraftVersion>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct MinecraftVersion {
-    id: String,
-    url: String,
-    time: String,
-    release_time: String,
-    downloads: MinecraftVersionDownloads,
-}
-
-#[derive(Deserialize, Serialize)]
-struct MinecraftVersionDownloads {
-    client: String,
-    server: String,
-}
 
 pub fn download_server(loader: &Loader, dir: String) -> Result<()> {
     let mut target: String = "".to_string();

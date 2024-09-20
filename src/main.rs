@@ -47,6 +47,7 @@ fn main() -> Result<()> {
                     .red()
                     .bold()
             );
+            backend::metadata::get_server_list();
             println!("{}", no_command_message);
             println!("{}", backend::metadata::get_working_dir());
             println!("{}", backend::metadata::get_server_dir());

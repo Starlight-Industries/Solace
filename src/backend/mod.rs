@@ -225,7 +225,7 @@ impl Server {
                             .bold()
                             .underline()
                     );
-                    let mut spinner = Spinner::new(spinners::Arc, " Terminating... ", Color::Red);
+                    let _spinner = Spinner::new(spinners::Arc, " Terminating... ", Color::Red);
                     write(config_file_clone.clone(), new_content_clone.clone()).unwrap();
                     running_clone.store(false, Ordering::SeqCst);
                 }
@@ -273,6 +273,3 @@ impl Server {
         Ok(())
     }
 }
-// pub fn get_servers() {
-//     for folder in
-// }
