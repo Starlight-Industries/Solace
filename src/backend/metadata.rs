@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::path::Path;
 
 pub fn get_working_dir() -> String {
     let home_dir = env::var("HOME").unwrap_or(env::var("USERPROFILE").unwrap());
@@ -14,8 +15,13 @@ pub fn get_server_dir() -> String {
 }
 pub fn get_server_list() -> Vec<String> {
     let working_dir = get_server_dir();
-    let paths = fs::read_dir(working_dir).unwrap();
+    let working_path = Path::new(working_dir.as_str());
     let mut server_list = Vec::new();
+    if !working_path.exists() {
+        fs::create_dir_all(working_path).unwrap();
+    }
+    let paths = fs::read_dir(working_dir).unwrap();
+
     for path in paths {
         let path = path.unwrap().path();
         println!("Name: {}", path.display());

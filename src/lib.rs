@@ -1,4 +1,7 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    path::Path,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -48,4 +51,8 @@ impl Display for LoaderType {
             }
         )
     }
+}
+
+pub struct Config {
+    backup_dest: Path,
 }

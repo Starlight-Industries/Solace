@@ -240,7 +240,10 @@ impl Server {
             ctrlc::set_handler(move || {
                 if !terminating {
                     terminating = true;
-                    control::set_virtual_terminal(true).unwrap();
+                    #[cfg(target_os = "windows")]
+                    {
+                        control::set_virtual_terminal(true).unwrap();
+                    }
                     println!(
                         "{}",
                         "Received Ctrl+C! Performing cleanup..."
@@ -267,13 +270,6 @@ impl Server {
             eprintln!("Error reading config. This means the server is not initalized! ",);
             return false;
         };
-        // if content.contains("initalized = true") {
-        //     println!("Initalized true: {}", content.contains("initalized = true"));
-        //     true
-        // } else {
-        //     println!("Not initalized");
-        //     return false;
-        // }
         content
             .contains("initalized = true")
             .then(|| {

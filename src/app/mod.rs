@@ -2,15 +2,18 @@
 #![allow(rustdoc::missing_crate_level_docs)] // it's an example
 
 use eframe::egui;
+use egui::Button;
+
+use crate::backend::metadata;
 
 pub fn main() -> eframe::Result {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([1280.0, 720.0]),
         ..Default::default()
     };
     eframe::run_native(
-        "My egui App",
+        "Solace",
         options,
         Box::new(|cc| {
             // This gives us image support:
@@ -22,33 +25,30 @@ pub fn main() -> eframe::Result {
 }
 
 struct MyApp {
-    name: String,
-    age: u32,
+    servers: Vec<String>,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
         Self {
-            name: "Arthur".to_owned(),
-            age: 42,
+            servers: metadata::get_server_list(),
         }
     }
 }
-
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let screen_size = ctx.screen_rect().size();
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("My egui Application");
-            ui.horizontal(|ui| {
-                let name_label = ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name)
-                    .labelled_by(name_label.id);
-            });
-            ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
-            if ui.button("Increment").clicked() {
-                self.age += 1;
-            }
-            ui.label(format!("Hello '{}', age {}", self.name, self.age));
+            egui::SidePanel::left("side_left")
+                .exact_width(screen_size.x * 0.09)
+                .show(ctx, |ui| {
+                    ui.heading("Servers");
+                    for item in &self.servers {
+                        if ui.button(item).clicked() {
+                            println!("Button was clciked")
+                        }
+                    }
+                })
         });
     }
 }
