@@ -3,7 +3,7 @@ use backend::Server;
 use clap::{Parser, Subcommand};
 use color_eyre::Result;
 use colored::Colorize;
-use solace::LoaderType;
+use solace::{Loader, LoaderType};
 
 pub mod app;
 pub mod backend;
@@ -25,8 +25,7 @@ enum Commands {
     Gui,
 }
 
-fn start_server(server: &str) -> Result<()> {
-    let mut server = Server::construct(&server.to_lowercase(), 25565, LoaderType::None, "1.21.1")?;
+fn start_server(mut server: Server) -> Result<()> {
     if !server.is_initalized() {
         server.init()?;
     }
@@ -37,17 +36,24 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Run { name }) => start_server(name),
+        Some(Commands::Run { name }) => {
+            let mut server_to_run = Server::find_server(name).unwrap();
+            if Server::is_initalized(&mut server_to_run) {
+                start_server(server_to_run)
+            } else {
+                panic!()
+            }
+        }
         Some(Commands::Create) => Server::create_server(),
         Some(Commands::Gui) => Ok(app::main().unwrap()),
         None => Ok({
+            backend::metadata::get_server_list();
             let no_command_message = format!(
                 "{}",
                 "No command was specified! Run 'solace --help' for more info!"
                     .red()
                     .bold()
             );
-            backend::metadata::get_server_list();
             println!("{}", no_command_message);
             println!("{}", backend::metadata::get_working_dir());
             println!("{}", backend::metadata::get_server_dir());

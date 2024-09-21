@@ -46,7 +46,6 @@ pub fn download_server(loader: &Loader, dir: String) -> Result<()> {
 #[allow(unused)]
 
 fn get_server_jar_url(version: &str) -> Result<String, Box<dyn Error>> {
-    // First, fetch the version manifest
     let manifest_url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
     let manifest_response = reqwest::blocking::get(manifest_url)?;
 
@@ -79,14 +78,11 @@ fn get_server_jar_url(version: &str) -> Result<String, Box<dyn Error>> {
 
     let version_json: Value = version_response.json()?;
 
-    // Extract the server jar URL
     let server_jar_path = version_json["downloads"]["server"]["url"]
         .as_str()
         .ok_or_else(|| format!("Server jar URL not found for version {}", version))?;
 
-    // Construct the full URL
     println!("{}", server_jar_path.yellow());
-    let full_url = Url::parse("https://launcher.mojang.com")?.join(server_jar_path)?;
 
     Ok(server_jar_path.to_string())
 }
