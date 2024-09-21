@@ -27,8 +27,7 @@ pub fn get_server_list() -> Vec<String> {
         let path = path.unwrap().path();
         println!("Name: {}", path.display());
         if let Some(path_str) = path.file_name() {
-            // Convert the PathBuf to a string
-            server_list.push(path_str.to_str().unwrap().to_string()); // Push the string version of the path into the Vec
+            server_list.push(path_str.to_str().unwrap().to_string());
         }
     }
     if !server_list.is_empty() {
