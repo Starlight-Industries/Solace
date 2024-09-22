@@ -3,10 +3,12 @@ use metadata::get_working_dir;
 use serde::{Deserialize, Serialize};
 pub mod installer;
 use color_eyre::Result;
-use colored::control;
+use colored::*;
 use inquire::{Select, Text};
+use regex::Regex;
 use solace::{Loader, LoaderType};
 use spinoff::{spinners, Color, Spinner};
+use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -133,6 +135,9 @@ impl Server {
     }
 
     pub fn start_server(&mut self) -> Result<()> {
+        let info = Regex::new(r"INFO").unwrap();
+        let error = Regex::new(r"ERROR").unwrap();
+        let warn = Regex::new(r"ERROR").unwrap();
         if !self.is_running && self.initalized {
             println!(
                 "starting {} on {}",
@@ -162,10 +167,23 @@ impl Server {
                 .arg("-nogui")
                 .current_dir(self.server_dir.clone())
                 //.stdin(Stdio::null())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
+                .stdout(Stdio::piped())
                 .spawn()
                 .expect("Failed to launch server");
+            if let Some(stdout) = child.stdout.take() {
+                let reader = BufReader::new(stdout);
+                for line in reader.lines() {
+                    let line = line.unwrap();
+
+                    if error.is_match(&line) {
+                        println!("{}", line.red().bold());
+                    } else if info.is_match(&line) {
+                        println!("{}", line);
+                    } else if warn.is_match(&line) {
+                        println!("{}", line.yellow().italic());
+                    }
+                }
+            }
 
             loop {
                 match child.try_wait()? {
@@ -257,7 +275,6 @@ impl Server {
                 }
             })
             .unwrap();
-            println!("Attempting to terminate");
         });
 
         Ok(())

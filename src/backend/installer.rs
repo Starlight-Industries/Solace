@@ -1,7 +1,6 @@
 use color_eyre::Result;
 use colored::{self, Colorize};
 use reqwest::blocking::get as download;
-use reqwest::Url;
 use serde_json;
 use serde_json::Value;
 use solace::{Loader, LoaderType};
@@ -14,7 +13,8 @@ pub fn download_server(loader: &Loader, dir: String) -> Result<()> {
     match loader.typ {
         LoaderType::Vanilla => {
             println!("{}", "Downloading vanilla".blue());
-            target = get_server_jar_url(loader.version.as_str()).unwrap();
+
+            target = get_vanilla_jar_url(loader.version.as_str()).unwrap();
         }
         LoaderType::Fabric => {
             println!("{}", "Downloading fabric".blue());
@@ -22,6 +22,11 @@ pub fn download_server(loader: &Loader, dir: String) -> Result<()> {
                 "https://meta.fabricmc.net/v2/versions/loader/{}/0.16.5/1.0.1/server/jar",
                 loader.version
             );
+        }
+        LoaderType::Paper => {
+            println!("{}", "Downloading Paper".blue());
+            println!("{}", get_paper_jar_url(loader.version.as_str()).unwrap());
+            target = get_paper_jar_url(loader.version.as_str()).unwrap();
         }
         _ => todo!(),
     }
@@ -45,7 +50,7 @@ pub fn download_server(loader: &Loader, dir: String) -> Result<()> {
 }
 #[allow(unused)]
 
-fn get_server_jar_url(version: &str) -> Result<String, Box<dyn Error>> {
+fn get_vanilla_jar_url(version: &str) -> Result<String, Box<dyn Error>> {
     let manifest_url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
     let manifest_response = reqwest::blocking::get(manifest_url)?;
 
@@ -85,4 +90,33 @@ fn get_server_jar_url(version: &str) -> Result<String, Box<dyn Error>> {
     println!("{}", server_jar_path.yellow());
 
     Ok(server_jar_path.to_string())
+}
+
+fn get_paper_jar_url(version: &str) -> Result<String, Box<dyn Error>> {
+    // Define the manifest URL
+    let manifest_url = "https://qing762.is-a.dev/api/papermc";
+
+    let manifest_response = reqwest::blocking::get(manifest_url)?;
+
+    if !manifest_response.status().is_success() {
+        return Err(format!(
+            "Manifest download failed with status: {}",
+            manifest_response.status().to_string()
+        )
+        .into());
+    }
+
+    let manifest_text = manifest_response.text()?;
+
+    let manifest: Value = serde_json::from_str(&manifest_text)?;
+
+    let version_url = manifest["versions"]
+        .as_object()
+        .and_then(|versions| versions.get(version))
+        .and_then(|url| url.as_str())
+        .ok_or_else(|| format!("Version {} not found in manifest", version))?;
+
+    println!("{}", version_url);
+
+    Ok(version_url.to_string())
 }
