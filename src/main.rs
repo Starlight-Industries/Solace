@@ -1,4 +1,3 @@
-#![feature(const_fmt_arguments_new)]
 use backend::Server;
 use clap::{Parser, Subcommand};
 use color_eyre::Result;
