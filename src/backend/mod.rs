@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub mod installer;
 use color_eyre::Result;
 use colored::*;
-use inquire::{Select, Text};
+use inquire::{prompt_confirmation, Select, Text};
 use regex::Regex;
 use solace::{Loader, LoaderType};
 use spinoff::{spinners, Color, Spinner};
@@ -16,7 +16,7 @@ use std::sync::Once;
 use std::thread::sleep;
 use std::time::Duration;
 
-use std::fs::{create_dir_all, read_to_string, write};
+use std::fs::{self, create_dir_all, read_to_string, write};
 use std::process::Command;
 pub mod metadata;
 static CTRL_C_HANDLER: Once = Once::new();
@@ -307,5 +307,25 @@ impl Server {
         println!("{:?}", config);
         write(format!("{}", config_file.clone()), new_content)?;
         Ok(())
+    }
+    pub fn remove_server(&mut self) {
+        let mut confirmed: bool = false;
+        let msg = format!(
+            "Are you sure you want to delete {} at {}",
+            self.name.underline(),
+            self.server_dir.red().bold().underline()
+        );
+        let msg2 = format!(
+            "This is your last warning. This {} be undone‼️",
+            "CANNOT".red().bold().italic()
+        );
+        if prompt_confirmation(msg).unwrap() {
+            confirmed = true
+        } else {
+            std::process::exit(0);
+        }
+        if confirmed && prompt_confirmation(msg2).unwrap() {
+            fs::remove_dir_all(&self.server_dir).unwrap();
+        }
     }
 }

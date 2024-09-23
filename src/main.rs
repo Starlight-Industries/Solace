@@ -20,6 +20,10 @@ enum Commands {
         #[arg(short, long)]
         name: String,
     },
+    Remove {
+        #[arg(short, long)]
+        name: String,
+    },
     Create,
     Gui,
 }
@@ -45,8 +49,12 @@ fn main() -> Result<()> {
         }
         Some(Commands::Create) => Server::create_server(),
         Some(Commands::Gui) => Ok(app::main().unwrap()),
+        Some(Commands::Remove { name }) => Ok({
+            let mut server = Server::find_server(name).unwrap();
+            server.remove_server();
+        }),
         None => Ok({
-            backend::metadata::get_server_list();
+            // backend::metadata::get_server_list();
             let no_command_message = format!(
                 "{}",
                 "No command was specified! Run 'solace --help' for more info!"
@@ -54,8 +62,8 @@ fn main() -> Result<()> {
                     .bold()
             );
             println!("{}", no_command_message);
-            println!("{}", backend::metadata::get_working_dir());
-            println!("{}", backend::metadata::get_server_dir());
+            // println!("{}", backend::metadata::get_working_dir());
+            // println!("{}", backend::metadata::get_server_dir());
             println!(
                 "{}",
                 "Solace will be a gui app in the future! Assuming you wanted the gui.."
